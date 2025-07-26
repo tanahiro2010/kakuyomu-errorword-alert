@@ -10,10 +10,6 @@
     ],
     "content_scripts": [
         {
-            "matches": ["*://kakuyomu.jp/**"],
-            "js": ["layout.js"]
-        },
-        {
             "matches": ["*://kakuyomu.jp/works/*/episodes/*"],
             "js": ["reader.js"]
         },
