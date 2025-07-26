@@ -19,7 +19,7 @@ const app = new Hono<Env>();
 // クロスオリジンリクエストを許可
 app.use('*', async (c, next) => {
   c.header('Access-Control-Allow-Origin', 'https://kakuyomu.jp');
-  c.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  c.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (c.req.method === 'OPTIONS') {
     return c.text('OK');
@@ -64,6 +64,27 @@ app.get('/works/:workId/episodes/:episodeId/errors', async (c) => {
       return c.json(result.results);
     } else {
       return c.json({ error: 'Failed to fetch error reports.' }, 500);
+    }
+  } catch (error) {
+    console.error('Database error:', error);
+    return c.json({ error: 'Internal server error.', details: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+app.patch('/works/:workId/episodes/:episodeId/errors/:errorId/edit', async (c) => {
+  const { workId, episodeId, errorId } = c.req.param();
+
+  // ここで誤字報告の編集処理を実装
+  const db = c.env.DB;
+  try {
+    const result = await db.prepare('UPDATE errors SET edited = 1 WHERE work_id = ? AND episode_id = ? AND error_id = ?')
+      .bind(workId, episodeId, errorId)
+      .run();
+
+    if (result.success) {
+      return c.json({ message: 'Error report updated successfully.' });
+    } else {
+      return c.json({ error: 'Failed to update error report.', details: result }, 500);
     }
   } catch (error) {
     console.error('Database error:', error);
@@ -139,6 +160,5 @@ app.post('/works/:workId/episodes/:episodeId/errors/new', async (c) => {
     }, 500);
   }
 });
-  
 
-export default app
+export default app;

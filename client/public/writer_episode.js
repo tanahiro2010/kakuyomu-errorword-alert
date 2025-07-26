@@ -8,18 +8,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const ApiBaseUrl = 'https://kakuyomu.herentongkegu087.workers.dev';
-const buttons = document.querySelector('.tocEditButtons');
-function handleButtonClick() {
+const EpisodeApiBaseUrl = 'https://kakuyomu.herentongkegu087.workers.dev';
+const episodeButtons = document.querySelector('#contentMainHeader-right');
+function handleEpisodeButtonClick() {
     return __awaiter(this, void 0, void 0, function* () {
         // モーダルダイアログを作成
-        yield createErrorReportModal();
+        yield createEpisodeErrorReportModal();
     });
 }
-function handleResolveError(workId, episodeId, errorId) {
+function handleEpisodeResolveError(workId, episodeId, errorId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch(`${ApiBaseUrl}/works/${workId}/episodes/${episodeId}/errors/${errorId}/edit`, {
+            const response = yield fetch(`${EpisodeApiBaseUrl}/works/${workId}/episodes/${episodeId}/errors/${errorId}/edit`, {
                 method: 'PATCH'
             });
             if (!response.ok) {
@@ -37,9 +37,9 @@ function handleResolveError(workId, episodeId, errorId) {
         }
     });
 }
-function createErrorReportModal() {
+function createEpisodeErrorReportModal() {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         // 既存のモーダルがあれば削除
         const existingModal = document.getElementById('error-report-modal');
         if (existingModal) {
@@ -142,18 +142,28 @@ function createErrorReportModal() {
         document.addEventListener('keydown', handleEscape);
         // 実際の誤字報告データを読み込む（仮実装）
         const workId = (_c = location.href.match(/\/works\/(\d+)/)) === null || _c === void 0 ? void 0 : _c[1];
-        if (!workId) {
-            console.error('Work ID not found in URL.');
+        const episodeId = (_d = location.href.match(/\/episodes\/(\d+)/)) === null || _d === void 0 ? void 0 : _d[1];
+        if (!workId || !episodeId) {
+            console.error('Work ID or Episode ID not found in URL.');
             return;
         }
-        yield loadErrorReports(workId);
+        yield loadEpisodeErrorReports(workId, episodeId);
     });
 }
-function getEpisodeTitle(episodeId) {
-    const episodeElement = document.querySelector(`#toc-default-episode-${episodeId} .episode-title`);
-    return episodeElement ? episodeElement.textContent || 'エピソードタイトル' : 'エピソードタイトル';
+function getEpisodePageTitle() {
+    // エピソード編集ページでは、ページタイトルからエピソード名を取得
+    const titleElement = document.querySelector('#contentMainHeader-pageTitle-episodeTitle');
+    if (titleElement && titleElement.textContent) {
+        return titleElement.textContent.trim();
+    }
+    // フォールバック: input要素からタイトルを取得
+    const inputElement = document.querySelector('#episodeTitle-input');
+    if (inputElement && inputElement.value) {
+        return inputElement.value.trim();
+    }
+    return 'このエピソード';
 }
-function createErrorReportCard(errorReport, paragraphs) {
+function createEpisodeErrorReportCard(errorReport, paragraphs) {
     const workId = errorReport.work_id;
     const episodeId = errorReport.episode_id;
     const statusColor = errorReport.edited ? '#0a6a00' : '#d32f2f';
@@ -182,7 +192,7 @@ function createErrorReportCard(errorReport, paragraphs) {
     headerLeft.style.cssText = 'flex: 1;';
     const title = document.createElement('h5');
     title.style.cssText = 'margin: 0 0 4px 0; font-size: 16px; color: #333; font-weight: 500;';
-    title.textContent = getEpisodeTitle(episodeId);
+    title.textContent = getEpisodePageTitle();
     const paragraphInfo = document.createElement('span');
     paragraphInfo.style.cssText = 'font-size: 12px; color: #999; font-weight: normal;';
     paragraphInfo.textContent = paragraphs.length === 1 ? ` 段落: ${paragraphs[0].id}` : ` 段落: ${paragraphs.length}箇所`;
@@ -220,7 +230,7 @@ function createErrorReportCard(errorReport, paragraphs) {
         if (paragraphs.length > 1) {
             const paragraphIdLabel = document.createElement('div');
             paragraphIdLabel.style.cssText = 'font-size: 11px; color: #999; margin-bottom: 8px; font-weight: 500;';
-            paragraphIdLabel.textContent = `${paragraph.id.replace('p', '')}:行目`;
+            paragraphIdLabel.textContent = `${paragraph.id.replace('p', '')}行目:`;
             modificationSection.appendChild(paragraphIdLabel);
         }
         // 修正前
@@ -297,7 +307,7 @@ function createErrorReportCard(errorReport, paragraphs) {
         markResolvedButton.addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
             const confirmResolve = confirm('この誤字報告を修正済みにしますか？');
             if (confirmResolve) {
-                yield handleResolveError(workId, episodeId, errorReport.error_id);
+                yield handleEpisodeResolveError(workId, episodeId, errorReport.error_id);
             }
         }));
     }
@@ -323,7 +333,7 @@ function createErrorReportCard(errorReport, paragraphs) {
     card.appendChild(actionSection);
     return card;
 }
-function createEmptyState() {
+function createEpisodeEmptyState() {
     const container = document.createElement('div');
     container.style.cssText = 'text-align: center; padding: 40px 0; color: #666;';
     const icon = document.createElement('div');
@@ -340,7 +350,7 @@ function createEmptyState() {
     container.appendChild(description);
     return container;
 }
-function createErrorState() {
+function createEpisodeErrorState() {
     const container = document.createElement('div');
     container.style.cssText = 'text-align: center; padding: 40px 0; color: #d32f2f;';
     const icon = document.createElement('div');
@@ -357,7 +367,7 @@ function createErrorState() {
     container.appendChild(description);
     return container;
 }
-function loadErrorReports(workId) {
+function loadEpisodeErrorReports(workId, episodeId) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
         const content = document.getElementById('error-report-content');
@@ -366,44 +376,53 @@ function loadErrorReports(workId) {
             return;
         }
         try {
-            const response = yield fetch(`${ApiBaseUrl}/works/${workId}/errors`);
+            const response = yield fetch(`${EpisodeApiBaseUrl}/works/${workId}/episodes/${episodeId}/errors`);
             if (!response.ok) {
                 console.error('Failed to fetch error reports:', response.statusText);
                 content.innerHTML = '';
-                content.appendChild(createErrorState());
+                content.appendChild(createEpisodeErrorState());
                 return;
             }
             const data = ((_a = (yield response.json())) !== null && _a !== void 0 ? _a : []).sort((a, b) => b.id - a.id);
             // コンテンツをクリア
             content.innerHTML = '';
             if (data.length === 0) {
-                content.appendChild(createEmptyState());
+                content.appendChild(createEpisodeEmptyState());
                 return;
             }
             // エラー報告を表示
             data.forEach((errorReport) => {
                 const changedParagraphs = JSON.parse(errorReport.error);
                 // 全ての段落を一つのカードに表示
-                const card = createErrorReportCard(errorReport, changedParagraphs);
+                const card = createEpisodeErrorReportCard(errorReport, changedParagraphs);
                 content.appendChild(card);
             });
         }
         catch (error) {
             console.error('Error loading error reports:', error);
             content.innerHTML = '';
-            content.appendChild(createErrorState());
+            content.appendChild(createEpisodeErrorState());
         }
     });
 }
 (() => {
-    if (!buttons) {
+    if (!episodeButtons) {
         console.error('ボタンが見つかりません。');
+        return;
+    }
+    // 保存ボタンを取得して、その前に挿入
+    const saveButton = document.getElementById('saveButton');
+    if (!saveButton) {
+        console.error('保存ボタンが見つかりません。');
         return;
     }
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'ui-button-default js-toc-edit-button';
-    button.textContent = '誤字報告を表示';
-    button.addEventListener('click', handleButtonClick);
-    buttons.appendChild(button);
+    button.className = 'ui-button-default-wrapper';
+    button.tabIndex = 19; // 保存ボタン(20)の前
+    button.style.marginRight = '8px';
+    button.innerHTML = '<span class="ui-button-default">誤字報告を表示</span>';
+    button.addEventListener('click', handleEpisodeButtonClick);
+    // 保存ボタンの前に挿入
+    episodeButtons.insertBefore(button, saveButton);
 })();

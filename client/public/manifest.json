@@ -15,7 +15,11 @@
         },
         {
             "matches": ["*://kakuyomu.jp/my/works/*"],
-            "js": ["writer.js"]
+            "js": ["writer_home.js"]
+        },
+        {
+            "matches": ["*://kakuyomu.jp/my/works/*/episodes/*"],
+            "js": ["writer_episode.js"]
         }
     ],
     "author": "tanahiro2010"

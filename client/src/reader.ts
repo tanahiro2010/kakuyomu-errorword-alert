@@ -25,9 +25,6 @@ function getMetadata(): Record<string, any> {
 }
 
 function displayForm(contentElement: HTMLElement) {
-    const meta = getMetadata();
-    const { workId, episodeId } = meta;
-
     // 既存のフォームがあれば削除
     const existingForm = document.getElementById('gozishusei-form');
     if (existingForm) {
@@ -164,7 +161,7 @@ function displayForm(contentElement: HTMLElement) {
     // フォーム送信前に変更された段落のみを検出して隠しフィールドに設定
     form.addEventListener('submit', () => {
         const currentParagraphs = Array.from(contentElement.querySelectorAll('p'));
-        const changedParagraphs: Array<{id: string, original: string, modified: string}> = [];
+        const changedParagraphs: Array<{id: string, original: string, modified: string, edited: 0 | 1}> = [];
 
         currentParagraphs.forEach(p => {
             const currentText = p.textContent || '';
@@ -176,7 +173,8 @@ function displayForm(contentElement: HTMLElement) {
                     changedParagraphs.push({
                         id: currentId,
                         original: originalParagraph.text,
-                        modified: currentText
+                        modified: currentText,
+                        edited: 0
                     });
                 }
             }

@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const apiBaseUrl = "";
+const apiBaseUrl = "https://kakuyomu.herentongkegu087.workers.dev";
 const button = document.createElement('button');
 button.className = "border rounded p-2 hover:bg-gray-100 ml-5";
 button.textContent = "誤字報告";
@@ -31,14 +31,18 @@ function getMetadata() {
     const json = meta.replace(';', '').replace('dataLayer = ', '');
     return JSON.parse(json)[0];
 }
-function displayForm() {
-    const meta = getMetadata();
-    const { workId, episodeId } = meta;
+function displayForm(contentElement) {
     // 既存のフォームがあれば削除
     const existingForm = document.getElementById('gozishusei-form');
     if (existingForm) {
         existingForm.remove();
     }
+    // 元のコンテンツを段落ごとに保存
+    const originalParagraphs = Array.from(contentElement.querySelectorAll('p')).map(p => ({
+        id: p.id,
+        text: p.textContent || '',
+        html: p.innerHTML
+    }));
     // フォームコンテナを作成
     const formContainer = document.createElement('section');
     formContainer.id = 'gozishusei-form';
@@ -47,7 +51,6 @@ function displayForm() {
     // フォーム作成
     const form = document.createElement('form');
     form.method = 'post';
-    form.action = `${apiBaseUrl}/works/${workId}/episodes/${episodeId}/new`;
     form.className = 'js-episode-error-report-form';
     // エラーメッセージボックス
     const errorMessage = document.createElement('p');
@@ -56,16 +59,28 @@ function displayForm() {
     const title = document.createElement('h3');
     title.textContent = '誤字・脱字報告';
     title.style.cssText = 'color: #ff6b6b; margin-bottom: 15px; font-size: 18px; font-weight: bold;';
-    // テキストエリア部分
-    const bodySection = document.createElement('p');
-    bodySection.className = 'widget-cheerCommentsForm-body';
-    const textarea = document.createElement('textarea');
-    textarea.id = 'error-report-body';
-    textarea.name = 'body';
-    textarea.placeholder = '誤字・脱字の詳細を入力してください（該当箇所、正しい表記など）';
-    textarea.style.cssText = 'width: 100%; height: 120px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;';
-    textarea.required = true;
-    bodySection.appendChild(textarea);
+    // 説明文
+    const instruction = document.createElement('p');
+    instruction.textContent = '本文を直接編集してください。変更された段落のみが修正提案として送信されます。';
+    instruction.style.cssText = 'margin-bottom: 15px; padding: 10px; background-color: #f0f8ff; border-left: 4px solid #007acc; font-size: 14px;';
+    // 隠しフィールドで変更された段落のみを送信
+    const changedParagraphsInput = document.createElement('input');
+    changedParagraphsInput.type = 'hidden';
+    changedParagraphsInput.name = 'changed_paragraphs';
+    changedParagraphsInput.id = 'changed-paragraphs-input';
+    // 追加コメント用のテキストエリア
+    const commentSection = document.createElement('div');
+    commentSection.style.cssText = 'margin-bottom: 15px;';
+    const commentLabel = document.createElement('label');
+    commentLabel.textContent = '追加コメント（任意）:';
+    commentLabel.style.cssText = 'display: block; margin-bottom: 5px; font-weight: bold;';
+    const commentTextarea = document.createElement('textarea');
+    commentTextarea.id = 'error-report-comment';
+    commentTextarea.name = 'comment';
+    commentTextarea.placeholder = '修正理由や補足説明があれば入力してください';
+    commentTextarea.style.cssText = 'width: 100%; height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;';
+    commentSection.appendChild(commentLabel);
+    commentSection.appendChild(commentTextarea);
     // フッター部分
     const footer = document.createElement('footer');
     footer.className = 'widget-cheerCommentsForm-footer';
@@ -75,7 +90,7 @@ function displayForm() {
     const infoList = document.createElement('dl');
     infoList.innerHTML = `
         <dt><span>報告タイプ</span></dt>
-        <dd>誤字・脱字報告</dd>
+        <dd>誤字・脱字修正提案</dd>
         <dt><span>エピソード</span></dt>
         <dd>${document.title}</dd>
     `;
@@ -87,7 +102,7 @@ function displayForm() {
     const submitButton = document.createElement('button');
     submitButton.type = 'submit';
     submitButton.className = 'ui-button-blue ui-button-big';
-    submitButton.textContent = '報告する';
+    submitButton.textContent = '修正提案を送信';
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.className = 'ui-button ui-button-big';
@@ -100,7 +115,9 @@ function displayForm() {
     // フォーム組み立て
     form.appendChild(errorMessage);
     form.appendChild(title);
-    form.appendChild(bodySection);
+    form.appendChild(instruction);
+    form.appendChild(changedParagraphsInput);
+    form.appendChild(commentSection);
     form.appendChild(footer);
     formContainer.appendChild(form);
     // フォームをページに挿入
@@ -112,12 +129,43 @@ function displayForm() {
     }
     // イベントリスナー設定
     cancelButton.onclick = () => {
+        // 編集を無効化して元のコンテンツに戻す
+        contentElement.contentEditable = 'false';
+        originalParagraphs.forEach(({ id, html }) => {
+            const paragraph = document.getElementById(id);
+            if (paragraph) {
+                paragraph.innerHTML = html;
+            }
+        });
         formContainer.remove();
     };
+    // フォーム送信前に変更された段落のみを検出して隠しフィールドに設定
+    form.addEventListener('submit', () => {
+        const currentParagraphs = Array.from(contentElement.querySelectorAll('p'));
+        const changedParagraphs = [];
+        currentParagraphs.forEach(p => {
+            const currentText = p.textContent || '';
+            const currentId = p.id;
+            const originalParagraph = originalParagraphs.find(orig => orig.id === currentId);
+            if (originalParagraph && originalParagraph.text !== currentText) {
+                if (currentText.length > 0) {
+                    changedParagraphs.push({
+                        id: currentId,
+                        original: originalParagraph.text,
+                        modified: currentText,
+                        edited: 0
+                    });
+                }
+            }
+        });
+        changedParagraphsInput.value = JSON.stringify(changedParagraphs);
+        if (changedParagraphs.length === 0) {
+            alert('変更が検出されませんでした。本文を編集してから送信してください。');
+            return false;
+        }
+    });
     // formContainerを表示
     episodeFooterActionCheerButtonContainer === null || episodeFooterActionCheerButtonContainer === void 0 ? void 0 : episodeFooterActionCheerButtonContainer.appendChild(formContainer);
-    // テキストエリアにフォーカス
-    textarea.focus();
     return [formContainer, form];
 }
 button.onclick = (() => __awaiter(void 0, void 0, void 0, function* () {
@@ -127,7 +175,14 @@ button.onclick = (() => __awaiter(void 0, void 0, void 0, function* () {
         alert("誤字報告はログインユーザーのみ利用できます。");
         return;
     }
-    const [formContainer, form] = displayForm();
+    const contentElement = document.querySelector('.widget-episodeBody.js-episode-body');
+    if (!contentElement) {
+        console.error("Content element not found.");
+        return;
+    }
+    contentElement.setAttribute('contenteditable', 'true');
+    console.log("Content element is now editable.");
+    const [formContainer, form] = displayForm(contentElement);
     if (!form) {
         console.error("Form could not be displayed.");
         return;
@@ -135,7 +190,7 @@ button.onclick = (() => __awaiter(void 0, void 0, void 0, function* () {
     form.addEventListener('submit', (e) => __awaiter(void 0, void 0, void 0, function* () {
         e.preventDefault();
         const formData = new FormData(form);
-        const response = yield fetch(`${apiBaseUrl}/works/${workId}/episodes/${episodeId}/new`, {
+        const response = yield fetch(`${apiBaseUrl}/works/${workId}/episodes/${episodeId}/errors/new`, {
             method: 'POST',
             body: formData
         });
