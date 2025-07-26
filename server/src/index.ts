@@ -18,7 +18,7 @@ const app = new Hono<Env>();
 
 // クロスオリジンリクエストを許可
 app.use('*', async (c, next) => {
-  c.header('Access-Control-Allow-Origin', '*');
+  c.header('Access-Control-Allow-Origin', 'https://kakuyomu.jp');
   c.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (c.req.method === 'OPTIONS') {
@@ -119,7 +119,7 @@ app.post('/works/:workId/episodes/:episodeId/errors/new', async (c) => {
   console.log('Attempting to insert:', { errorId, workId, episodeId, changedParagraphs, comment });
 
   try {
-    const result = await db.prepare('INSERT INTO errors (error_id, work_id, episode_id, error, comment) VALUES (?, ?, ?, ?, ?)')
+    const result = await db.prepare('INSERT INTO errors (error_id, work_id, episode_id, error, comment, edited) VALUES (?, ?, ?, ?, ?, 0)')
       .bind(errorId, workId, episodeId, changedParagraphs, comment)
       .run();
 
@@ -139,5 +139,6 @@ app.post('/works/:workId/episodes/:episodeId/errors/new', async (c) => {
     }, 500);
   }
 });
+  
 
 export default app
