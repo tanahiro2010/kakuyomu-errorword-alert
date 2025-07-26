@@ -172,11 +172,13 @@ function displayForm(contentElement: HTMLElement) {
             const originalParagraph = originalParagraphs.find(orig => orig.id === currentId);
             
             if (originalParagraph && originalParagraph.text !== currentText) {
-                changedParagraphs.push({
-                    id: currentId,
-                    original: originalParagraph.text,
-                    modified: currentText
-                });
+                if (currentText.length > 0) {
+                    changedParagraphs.push({
+                        id: currentId,
+                        original: originalParagraph.text,
+                        modified: currentText
+                    });
+                }
             }
         });
 
