@@ -1,0 +1,26 @@
+{
+    "manifest_version": 3,
+    "name": "カクヨム誤字報告機能",
+    "short_name": "カクヨム誤字報告機能",
+    "description": "この拡張機能は、カクヨムに「小説家になろう」にあるような誤字報告機能を追加します",
+    "homepage_url": "https://tanahiro2010.com",
+    "version": "1.0",
+    "permissions": [
+        "storage"
+    ],
+    "content_scripts": [
+        {
+            "matches": ["*://kakuyomu.jp/**"],
+            "js": ["layout.js"]
+        },
+        {
+            "matches": ["*://kakuyomu.jp/works/*/episodes/*"],
+            "js": ["reader.js"]
+        },
+        {
+            "matches": ["*://kakuyomu.jp/my/works/*"],
+            "js": ["writer.js"]
+        }
+    ],
+    "author": "tanahiro2010"
+}
